@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Racer</title>
+  <style>
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #111;
+  color: #eee;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  overflow: hidden;
+
+  /* prevent text selection and tap highlight */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0,0,0,0.95);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 255, 85, 0.3);
+  position: relative;
+  transition: transform 0.1s ease-in-out, filter 0.1s ease-in-out;
+}
+
+/* New animation for color-cycling effect */
+@keyframes color-cycle {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.color-cycle-animation {
+  animation: color-cycle 1s linear infinite;
+}
+
+canvas {
+  background: #222;
+  border: 2px solid #00ff55;
+  border-radius: 12px;
+}
+
+.score-display {
+  color: #0f0;
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.intro-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 12px;
+}
+
+.game-btn {
+  background-color: #00ff55;
+  color: #111;
+  border: none;
+  padding: 12px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-in-out;
+}
+
+.game-btn:hover {
+  background-color: #00cc44;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.game-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.game-btn.retry-btn {
+  background-color: #ff5555;
+}
+
+.game-btn.retry-btn:hover {
+  background-color: #cc4444;
+}
+
+.controls {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.control-btn {
+  width: 70px;
+  height: 70px;
+  font-size: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: #00ff55;
+  color: #111;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn.booster {
+  color: white;
+  background-color: #111;
+}
+
+.booster-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: #00ff55;
+  transition: height 0.1s linear;
+  z-index: -1;
+}
+
+.control-btn.booster.charging .booster-fill {
+  transition: height 0.2s linear;
+}
+
+.control-btn.booster.using .booster-fill {
+  transition: height 0.1s linear;
+}
+
+.control-btn.booster:disabled {
+  background-color: #444;
+  border: none;
+  color: #888;
+}
+
+.control-btn.booster.ready {
+  background-color: #00ff55;
+  color: #111;
+}
+
+@media (max-width: 600px) {
+  .game-container {
+    width: 90%;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div id="introOverlay" class="intro-overlay">
+        <h1 style="color:white; margin-bottom: 20px;">Offline Racer</h1>
+        <button id="playButton" class="game-btn">Play</button>
+    </div>
+    <canvas id="racing-canvas" width="320" height="500"></canvas>
+    <div id="score" class="score-display">Score: 0</div>
+    <div id="high-score" class="score-display">High Score: 0</div>
+  </div>
+
+  <div class="controls">
+    <div style="display: flex; gap: 15px;">
+        <button id="leftBtn" class="control-btn">⬅️</button>
+        <button id="rightBtn" class="control-btn">➡️</button>
+    </div>
+    <button id="nitroBtn" class="control-btn booster">
+        🚀
+        <div id="nitroFill" class="booster-fill"></div>
+    </button>
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script>
+    const introOverlay = document.getElementById("introOverlay");
+    const playButton = document.getElementById("playButton");
+    const canvas = document.getElementById("racing-canvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("score");
+    const highScoreDisplay = document.getElementById("high-score");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const nitroBtn = document.getElementById("nitroBtn");
+    const nitroFill = document.getElementById("nitroFill");
+    const gameContainer = document.querySelector('.game-container');
+
+    // Tone.js sound effects
+    const moveSynth = new Tone.FMSynth({
+        harmonicity: 3,
+        modulationIndex: 10,
+        envelope: {
+            attack: 0.001,
+            decay: 0.2,
+            sustain: 0,
+            release: 0.2
+        },
+        volume: -20
+    }).toDestination();
+    const nitroSynth = new Tone.NoiseSynth({
+        "volume": -10,
+        "envelope": {
+            "attack": 0.001,
+            "decay": 0.2,
+            "sustain": 0.05,
+            "release": 0.2
+        },
+        "filter": {
+            "Q": 6,
+            "type": "lowpass",
+            "frequency": 2000
+        }
+    }).toDestination();
+    const gameOverSynth = new Tone.MembraneSynth().toDestination();
+
+    let player, obstacles, score, highScore, gameOver;
+    let playerSpeed = 4;
+    let baseGameSpeed = 3;
+    let gameSpeed = baseGameSpeed;
+    let nitroActive = false, nitroDuration = 0, nitroCooldown = 0;
+    let roadLines = [];
+    let smokeParticles = [];
+
+    const NITRO_DURATION_FRAMES = 300;
+    const NITRO_COOLDOWN_FRAMES = 900;
+    const ROAD_LINE_COUNT = 3;
+    const ROAD_LINE_WIDTH = 5;
+    const ROAD_LINE_LENGTH = 50;
+    const ROAD_LINE_SPACING = 80;
+
+    let keys = {};
+
+    // Pixel Cars
+    const playerCarDesign = [
+      ['T', 'T', 'D', 'D', 'D', 'D', 'T', 'T'],
+      ['T', 'D', 'L', 'L', 'L', 'L', 'D', 'T'],
+      ['D', 'L', 'G', 'G', 'G', 'G', 'L', 'D'],
+      ['D', 'L', 'G', 'G', 'G', 'G', 'L', 'D'],
+      ['T', 'D', 'L', 'L', 'L', 'L', 'D', 'T']
+    ];
+    const opponentCarDesign = [
+      ['T', 'T', 'R', 'R', 'R', 'R', 'T', 'T'],
+      ['T', 'R', 'O', 'O', 'O', 'O', 'R', 'T'],
+      ['R', 'O', 'B', 'B', 'B', 'B', 'O', 'R'],
+      ['R', 'O', 'B', 'B', 'B', 'B', 'O', 'R'],
+      ['T', 'R', 'O', 'O', 'O', 'O', 'R', 'T']
+    ];
+    const colors = {
+      'T': '#00000000', 'D': '#444444', 'L': '#CCCCCC', 'G': '#00FF00',
+      'R': '#FF0000', 'O': '#FFAA00', 'B': '#0000FF'
+    };
+
+    function drawCar(x, y, design, scale = 6) {
+      for (let row = 0; row < design.length; row++) {
+        for (let col = 0; col < design[row].length; col++) {
+          const color = design[row][col];
+          if (color !== 'T') {
+            ctx.fillStyle = colors[color] || '#000';
+            ctx.fillRect(x + col * scale, y + row * scale, scale, scale);
+          }
+        }
+      }
+    }
+
+    function drawRoadLines() {
+      const laneWidth = canvas.width / 3;
+      const offsets = [-laneWidth, 0, laneWidth];
+      const lineSpeed = gameSpeed;
+    
+      ctx.fillStyle = "#444";
+      for (let i = 0; i < roadLines.length; i++) {
+        roadLines[i].y += lineSpeed;
+        for (let j = 0; j < ROAD_LINE_COUNT; j++) {
+            const xPos = canvas.width / 2 + offsets[j];
+            ctx.fillRect(xPos - ROAD_LINE_WIDTH / 2, roadLines[i].y, ROAD_LINE_WIDTH, ROAD_LINE_LENGTH);
+        }
+        if (roadLines[i].y > canvas.height) {
+          roadLines[i].y = -ROAD_LINE_SPACING + (roadLines[i].y - canvas.height);
+        }
+      }
+    }
+    
+    // Game Functions
+    function startGame() {
+      Tone.start();
+      introOverlay.style.display = 'none';
+      playButton.style.display = 'none';
+      moveSynth.triggerAttackRelease("C4", "8n");
+
+      const scale = 6;
+      player = {
+        x: canvas.width / 2 - (playerCarDesign[0].length * scale) / 2,
+        y: canvas.height - playerCarDesign.length * scale - 10,
+        width: playerCarDesign[0].length * scale,
+        height: playerCarDesign.length * scale
+      };
+
+      obstacles = [];
+      roadLines = [];
+      smokeParticles = [];
+      for (let i = 0; i < canvas.height / ROAD_LINE_SPACING; i++) {
+        roadLines.push({ y: i * ROAD_LINE_SPACING });
+      }
+
+      score = 0;
+      highScore = localStorage.getItem("highScore") || 0;
+      gameOver = false;
+      baseGameSpeed = 3;
+      gameSpeed = baseGameSpeed;
+      nitroActive = false;
+      nitroDuration = 0;
+      nitroCooldown = 0;
+
+      scoreDisplay.innerText = `Score: ${score}`;
+      highScoreDisplay.innerText = `High Score: ${highScore}`;
+
+      updateNitroButton();
+      updateGame();
+    }
+
+    function spawnObstacle() {
+      const scale = 6;
+      const width = opponentCarDesign[0].length * scale;
+      const height = opponentCarDesign.length * scale;
+      const x = Math.random() * (canvas.width - width - 10) + 5;
+      obstacles.push({ x, y: -height, width, height, passed: false });
+    }
+
+    function updateGame() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      drawRoadLines();
+
+      // Draw and move obstacles
+      for (let obs of obstacles) {
+        obs.y += gameSpeed;
+        drawCar(obs.x, obs.y, opponentCarDesign);
+
+        if (!obs.passed && obs.y > player.y + player.height) {
+          score++;
+          obs.passed = true;
+          scoreDisplay.innerText = `Score: ${score}`;
+
+          if (score >= 30 && (score - 30) % 5 === 0) {
+            baseGameSpeed += 0.5;
+          }
+        }
+      }
+
+      obstacles = obstacles.filter(o => o.y < canvas.height + 20);
+      if (Math.random() < 0.015) spawnObstacle();
+
+      // Horizontal movement
+      let driftAngle = 0;
+      if (keys["ArrowLeft"]) {
+        player.x = Math.max(player.x - playerSpeed, 0);
+        driftAngle = -0.15; // Increased drift angle
+      }
+      if (keys["ArrowRight"]) {
+        player.x = Math.min(player.x + playerSpeed, canvas.width - player.width);
+        driftAngle = 0.15; // Increased drift angle
+      }
+
+      // Add smoke particles on drift
+      if (driftAngle !== 0) {
+        smokeParticles.push({
+            x: player.x + player.width / 2 + Math.random() * 10 - 5,
+            y: player.y + player.height - 5,
+            size: Math.random() * 5 + 3, // Larger particle size
+            alpha: 1,
+            speedY: gameSpeed + 2
+        });
+      }
+
+      // Draw and move smoke particles
+      for (let i = smokeParticles.length - 1; i >= 0; i--) {
+        const p = smokeParticles[i];
+        p.y += p.speedY;
+        p.alpha -= 0.03; // Faster fade out
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = "rgba(240, 240, 240, 1)"; // Lighter color
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+        ctx.fill();
+        if (p.alpha <= 0) {
+            smokeParticles.splice(i, 1);
+        }
+      }
+      ctx.globalAlpha = 1; // Reset alpha
+
+      // Draw and rotate player
+      ctx.save();
+      ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+      ctx.rotate(driftAngle);
+      drawCar(-player.width / 2, -player.height / 2, playerCarDesign);
+      ctx.restore();
+
+      // Collision detection
+      for (let obs of obstacles) {
+        if (player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + player.height > obs.y) {
+          endGame();
+          return;
+        }
+      }
+
+      // Nitro effect
+      if (nitroActive) {
+        gameSpeed = baseGameSpeed * 1.8;
+        gameContainer.classList.add('color-cycle-animation');
+        nitroDuration--;
+        if (nitroDuration <= 0) {
+          nitroActive = false;
+          nitroCooldown = NITRO_COOLDOWN_FRAMES;
+          gameSpeed = baseGameSpeed;
+          gameContainer.classList.remove('color-cycle-animation');
+        }
+      } else {
+        if (nitroCooldown > 0) {
+          nitroCooldown--;
+          gameSpeed = baseGameSpeed;
+        }
+      }
+      updateNitroButton();
+
+      requestAnimationFrame(updateGame);
+    }
+
+    function endGame() {
+      gameOver = true;
+      gameOverSynth.triggerAttackRelease("C1", "2n");
+      introOverlay.style.display = 'flex';
+      playButton.innerText = "Retry";
+      playButton.classList.add('retry-btn');
+      playButton.style.display = 'block';
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = '20px Arial';
+      ctx.fillText("Game Over!", canvas.width / 2 - 50, canvas.height / 2);
+      ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 + 30);
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("highScore", highScore);
+      }
+      highScoreDisplay.innerText = `High Score: ${highScore}`;
+    }
+
+    // Button Events
+    playButton.addEventListener("click", () => {
+        startGame();
+    });
+
+    leftBtn.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowLeft"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
+    leftBtn.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowLeft"] = false; });
+    leftBtn.addEventListener("mousedown", () => { keys["ArrowLeft"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
+    leftBtn.addEventListener("mouseup", () => { keys["ArrowLeft"] = false; });
+
+    rightBtn.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowRight"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
+    rightBtn.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowRight"] = false; });
+    rightBtn.addEventListener("mousedown", () => { keys["ArrowRight"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
+    rightBtn.addEventListener("mouseup", () => { keys["ArrowRight"] = false; });
+
+    nitroBtn.addEventListener("click", () => {
+      if (!gameOver && !nitroActive && nitroCooldown === 0) {
+        nitroActive = true;
+        nitroDuration = NITRO_DURATION_FRAMES;
+        nitroSynth.triggerAttackRelease("1n");
+      }
+    });
+
+    function updateNitroButton() {
+      if (!nitroBtn) return;
+      
+      const nitroClassList = nitroBtn.classList;
+      nitroClassList.remove('ready', 'charging', 'using');
+      
+      if (nitroActive) {
+          nitroClassList.add('using');
+          nitroFill.style.height = `${(nitroDuration / NITRO_DURATION_FRAMES) * 100}%`;
+          nitroBtn.disabled = true;
+          nitroBtn.style.backgroundColor = 'gray';
+          nitroBtn.style.color = 'white';
+      } else if (nitroCooldown > 0) {
+          nitroClassList.add('charging');
+          nitroFill.style.height = `${(1 - nitroCooldown / NITRO_COOLDOWN_FRAMES) * 100}%`;
+          nitroBtn.disabled = true;
+          nitroBtn.style.backgroundColor = 'gray';
+          nitroBtn.style.color = 'white';
+      } else {
+          nitroClassList.add('ready');
+          nitroFill.style.height = '100%';
+          nitroBtn.disabled = false;
+          nitroBtn.style.backgroundColor = '#00ff55';
+          nitroBtn.style.color = '#111';
+      }
+    }
+  </script>
+</body>
+</html>
+
