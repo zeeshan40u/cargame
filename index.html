@@ -112,7 +112,7 @@ canvas {
   bottom: 20px;
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 20px;
   box-sizing: border-box;
 }
@@ -136,6 +136,8 @@ canvas {
 }
 
 .control-btn.booster {
+  width: 150px;
+  border-radius: 35px;
   color: white;
   background-color: #111;
 }
@@ -177,7 +179,7 @@ canvas {
   </style>
 </head>
 <body>
-  <div class="game-container">
+  <div class="game-container" id="gameContainer">
     <div id="introOverlay" class="intro-overlay">
         <h1 style="color:white; margin-bottom: 20px;">Offline Racer</h1>
         <button id="playButton" class="game-btn">Play</button>
@@ -188,10 +190,6 @@ canvas {
   </div>
 
   <div class="controls">
-    <div style="display: flex; gap: 15px;">
-        <button id="leftBtn" class="control-btn">⬅️</button>
-        <button id="rightBtn" class="control-btn">➡️</button>
-    </div>
     <button id="nitroBtn" class="control-btn booster">
         🚀
         <div id="nitroFill" class="booster-fill"></div>
@@ -200,17 +198,15 @@ canvas {
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script>
+    const gameContainer = document.getElementById("gameContainer");
     const introOverlay = document.getElementById("introOverlay");
     const playButton = document.getElementById("playButton");
     const canvas = document.getElementById("racing-canvas");
     const ctx = canvas.getContext("2d");
     const scoreDisplay = document.getElementById("score");
     const highScoreDisplay = document.getElementById("high-score");
-    const leftBtn = document.getElementById("leftBtn");
-    const rightBtn = document.getElementById("rightBtn");
     const nitroBtn = document.getElementById("nitroBtn");
     const nitroFill = document.getElementById("nitroFill");
-    const gameContainer = document.querySelector('.game-container');
 
     // Tone.js sound effects
     const moveSynth = new Tone.FMSynth({
@@ -241,12 +237,12 @@ canvas {
     const gameOverSynth = new Tone.MembraneSynth().toDestination();
 
     let player, obstacles, score, highScore, gameOver;
-    let playerSpeed = 4;
     let baseGameSpeed = 3;
     let gameSpeed = baseGameSpeed;
     let nitroActive = false, nitroDuration = 0, nitroCooldown = 0;
     let roadLines = [];
     let smokeParticles = [];
+    let isDragging = false;
 
     const NITRO_DURATION_FRAMES = 300;
     const NITRO_COOLDOWN_FRAMES = 900;
@@ -254,8 +250,6 @@ canvas {
     const ROAD_LINE_WIDTH = 5;
     const ROAD_LINE_LENGTH = 50;
     const ROAD_LINE_SPACING = 80;
-
-    let keys = {};
 
     // Pixel Cars
     const playerCarDesign = [
@@ -379,19 +373,8 @@ canvas {
       obstacles = obstacles.filter(o => o.y < canvas.height + 20);
       if (Math.random() < 0.015) spawnObstacle();
 
-      // Horizontal movement
-      let driftAngle = 0;
-      if (keys["ArrowLeft"]) {
-        player.x = Math.max(player.x - playerSpeed, 0);
-        driftAngle = -0.15; // Increased drift angle
-      }
-      if (keys["ArrowRight"]) {
-        player.x = Math.min(player.x + playerSpeed, canvas.width - player.width);
-        driftAngle = 0.15; // Increased drift angle
-      }
-
       // Add smoke particles on drift
-      if (driftAngle !== 0) {
+      if (isDragging) {
         smokeParticles.push({
             x: player.x + player.width / 2 + Math.random() * 10 - 5,
             y: player.y + player.height - 5,
@@ -420,7 +403,6 @@ canvas {
       // Draw and rotate player
       ctx.save();
       ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
-      ctx.rotate(driftAngle);
       drawCar(-player.width / 2, -player.height / 2, playerCarDesign);
       ctx.restore();
 
@@ -481,16 +463,6 @@ canvas {
         startGame();
     });
 
-    leftBtn.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowLeft"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
-    leftBtn.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowLeft"] = false; });
-    leftBtn.addEventListener("mousedown", () => { keys["ArrowLeft"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
-    leftBtn.addEventListener("mouseup", () => { keys["ArrowLeft"] = false; });
-
-    rightBtn.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowRight"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
-    rightBtn.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowRight"] = false; });
-    rightBtn.addEventListener("mousedown", () => { keys["ArrowRight"] = true; moveSynth.triggerAttackRelease("C5", "32n"); });
-    rightBtn.addEventListener("mouseup", () => { keys["ArrowRight"] = false; });
-
     nitroBtn.addEventListener("click", () => {
       if (!gameOver && !nitroActive && nitroCooldown === 0) {
         nitroActive = true;
@@ -525,6 +497,52 @@ canvas {
           nitroBtn.style.color = '#111';
       }
     }
+
+    // New touch/mouse control logic
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      let x;
+      if (e.touches) {
+        x = e.touches[0].clientX;
+      } else {
+        x = e.clientX;
+      }
+      return x - rect.left;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+    });
+    canvas.addEventListener('mouseup', (e) => {
+      isDragging = false;
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const mouseX = getMousePos(e);
+        player.x = mouseX - player.width / 2;
+        player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+      }
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      const touchX = getMousePos(e);
+      player.x = touchX - player.width / 2;
+      player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+    });
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isDragging = false;
+    });
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (isDragging) {
+        const touchX = getMousePos(e);
+        player.x = touchX - player.width / 2;
+        player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+      }
+    });
   </script>
 </body>
 </html>
