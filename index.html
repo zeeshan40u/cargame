@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Racer</title>
+    <title>PixelPoint</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     
     <style>
@@ -238,7 +238,7 @@
     <div class="game-container" id="gameContainer">
         <canvas id="racing-canvas" width="320" height="600"></canvas>
         <div id="introOverlay" class="overlay">
-            <h1>Pixel Racer</h1>
+            <h1>PixelPoint</h1>
             <p>Use your mouse or touch to steer!</p>
             <button id="playButton" class="control-btn fade-in" style="opacity: 1;">Start Game</button>
         </div>
@@ -279,12 +279,7 @@
     }).toDestination();
     const gameOverSynth = new Tone.MembraneSynth().toDestination();
 
-    // New, calmer shield sound effect
-    const shieldCollectSynth = new Tone.Synth({
-        oscillator: { type: "triangle" },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 },
-        volume: -10
-    }).toDestination();
+    const shieldSound = new Tone.Player("shieldcargame.mp3").toDestination();
 
     const shieldActiveSynth = new Tone.Synth({
         "oscillator": { "type": "triangle" },
@@ -329,7 +324,9 @@
     // Game variables
     let player, obstacles, shields, disasters, score, highScore, gameOver;
     let baseGameSpeed = 3;
+    let powerUpSpeed = 3; // New variable for consistent power-up speed
     let originalGameSpeed = baseGameSpeed;
+    let backgroundSpeed = baseGameSpeed;
     let gameSpeed = baseGameSpeed;
     let nitroActive = false, nitroDuration = 0, nitroCooldown = 0;
     let shieldActive = false, shieldDuration = 0;
@@ -340,9 +337,10 @@
     let explosionParticles = [];
     let isDragging = false;
     let endGameEffect = false;
+    let shakeFrames = 0;
     
     // Game Constants
-    const NITRO_SPEED_MULTIPLIER = 3.2;
+    const NITRO_SPEED_MULTIPLIER = 2.5;
     const NITRO_DURATION_FRAMES = 480;
     const NITRO_COOLDOWN_FRAMES = 720;
     const SHIELD_DURATION_FRAMES = 600;
@@ -374,22 +372,32 @@
       'R': '#FF0000', 'O': '#FFAA00', 'B': '#0000FF'
     };
     
-    function drawCar(x, y, design, scale = 6) {
+    // Linear Interpolation for smooth animations
+    function lerp(start, end, amt) {
+        return (1 - amt) * start + amt * end;
+    }
+
+    function drawCar(x, y, design, rotation = 0, scale = 6) {
+      ctx.save();
+      ctx.translate(x + (design[0].length * scale) / 2, y + (design.length * scale) / 2);
+      ctx.rotate(rotation);
+
       for (let row = 0; row < design.length; row++) {
         for (let col = 0; col < design[row].length; col++) {
           const color = design[row][col];
           if (color !== 'T') {
             ctx.fillStyle = colors[color] || '#000';
-            ctx.fillRect(x + col * scale, y + row * scale, scale, scale);
+            ctx.fillRect(col * scale - (design[0].length * scale) / 2, row * scale - (design.length * scale) / 2, scale, scale);
           }
         }
       }
+      ctx.restore();
     }
 
     function drawRoadLines() {
       const laneWidth = canvas.width / 3;
       const offsets = [-laneWidth, 0, laneWidth];
-      const lineSpeed = gameSpeed;
+      const lineSpeed = backgroundSpeed;
 
       ctx.fillStyle = "#444";
       for (let i = 0; i < roadLines.length; i++) {
@@ -421,7 +429,8 @@
         y: canvas.height - playerCarDesign.length * scale - 10,
         width: playerCarDesign[0].length * scale,
         height: playerCarDesign.length * scale,
-        opacity: 1
+        opacity: 1,
+        rotation: 0
       };
 
       obstacles = [];
@@ -441,11 +450,16 @@
       endGameEffect = false;
       baseGameSpeed = 3; 
       originalGameSpeed = baseGameSpeed;
+      backgroundSpeed = baseGameSpeed;
       gameSpeed = baseGameSpeed;
+      nitroActive = false;
+      nitroDuration = 0;
+      nitroCooldown = 0;
       shieldActive = false;
       shieldDuration = 0;
       disasterActive = false;
       disasterDuration = 0;
+      shakeFrames = 0;
       shieldDisplay.style.display = 'none';
       
       gameContainer.className = 'game-container';
@@ -461,19 +475,20 @@
       const scale = 6;
       const width = opponentCarDesign[0].length * scale;
       const height = opponentCarDesign.length * scale;
-      const x = Math.random() * (canvas.width - width - 10) + 5;
+      // No padding, allowing cars to spawn at the very edge of the road
+      const x = Math.random() * (canvas.width - width);
       obstacles.push({ x, y: -height, width, height, passed: false });
     }
     
     function spawnShield() {
       const size = 30;
-      const x = Math.random() * (canvas.width - size - 10) + 5;
+      const x = Math.random() * (canvas.width - size);
       shields.push({ x, y: -size, width: size, height: size });
     }
 
     function spawnDisaster() {
       const size = 40;
-      const x = Math.random() * (canvas.width - size - 10) + 5;
+      const x = Math.random() * (canvas.width - size);
       disasters.push({ x, y: -size, width: size, height: size });
     }
 
@@ -513,9 +528,10 @@
         if (!endGameEffect) {
           endGameEffect = true;
           gameOverSynth.triggerAttackRelease("C1", "2n");
+          shakeFrames = 30;
         }
 
-        gameSpeed *= 0.95;
+        backgroundSpeed *= 0.95;
         if (player.opacity > 0) {
           player.opacity -= 0.03;
         } else {
@@ -524,6 +540,23 @@
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Screen shake effect
+      if (shakeFrames > 0) {
+          const shakeX = (Math.random() - 0.5) * 10;
+          const shakeY = (Math.random() - 0.5) * 10;
+          ctx.translate(shakeX, shakeY);
+          shakeFrames--;
+      }
+
+      // Increase game speed based on score
+      gameSpeed = baseGameSpeed + Math.floor(score / 10) * 0.5;
+      backgroundSpeed = gameSpeed;
+      if (nitroActive) {
+          gameSpeed = gameSpeed * NITRO_SPEED_MULTIPLIER;
+          backgroundSpeed = gameSpeed;
+      }
+
       drawRoadLines();
 
       // Handle devastating meteoroid animation and effect
@@ -554,6 +587,7 @@
           if (disasterDuration <= 0) {
               disasterActive = false;
               gameSpeed = originalGameSpeed;
+              backgroundSpeed = originalGameSpeed;
               meteors = [];
               gameContainer.classList.remove('disaster-active');
           }
@@ -576,7 +610,7 @@
       // Shields
       for (let i = shields.length - 1; i >= 0; i--) {
         const shield = shields[i];
-        shield.y += gameSpeed;
+        shield.y += powerUpSpeed; // Use powerUpSpeed
         
         // Draw shield
         ctx.fillStyle = '#00aaff';
@@ -595,9 +629,9 @@
             player.y < shield.y + shield.height &&
             player.y + player.height > shield.y) {
             
-            shieldCollectSynth.triggerAttackRelease("C5", "8n");
+            shieldSound.start();
             
-            if (!shieldActive) {
+                        if (!shieldActive) {
                 shieldActive = true;
                 shieldDuration = SHIELD_DURATION_FRAMES;
                 shieldDisplay.style.display = 'flex';
@@ -611,7 +645,7 @@
       // Disasters
       for (let i = disasters.length - 1; i >= 0; i--) {
         const disaster = disasters[i];
-        disaster.y += gameSpeed;
+        disaster.y += powerUpSpeed; // Use powerUpSpeed
         
         // Draw disaster
         ctx.fillStyle = '#ff6600';
@@ -624,7 +658,7 @@
         ctx.textBaseline = 'middle';
         ctx.fillText('☄️', disaster.x + disaster.width / 2, disaster.y + disaster.height / 2);
 
-           // Check for collision with player
+        // Check for collision with player
         if (player.x < disaster.x + disaster.width &&
             player.x + player.width > disaster.x &&
             player.y < disaster.y + disaster.height &&
@@ -633,6 +667,7 @@
             disasterActive = true;
             disasterDuration = DISASTER_DURATION_FRAMES;
             gameSpeed = originalGameSpeed * 0.25;
+            backgroundSpeed = originalGameSpeed * 0.25;
             gameContainer.classList.add('disaster-active');
             
             // Spawn meteors to hit all current cars
@@ -682,21 +717,27 @@
       }
       
       // Smoke particles
-      if (isDragging) {
-        smokeParticles.push({
-            x: player.x + player.width / 2 + Math.random() * 10 - 5,
-            y: player.y + player.height - 5,
-            size: Math.random() * 5 + 3,
-            alpha: 1,
-            speedY: gameSpeed + 2
-        });
+      if (isDragging || nitroActive) {
+        const particleColor = nitroActive ? '#ffd700' : 'rgba(240, 240, 240, 1)';
+        const particleSize = nitroActive ? Math.random() * 10 + 5 : Math.random() * 5 + 3;
+        const particleCount = nitroActive ? 3 : 1;
+        for (let i = 0; i < particleCount; i++) {
+            smokeParticles.push({
+                x: player.x + player.width / 2 + Math.random() * 10 - 5,
+                y: player.y + player.height - 5,
+                size: particleSize,
+                alpha: 1,
+                speedY: backgroundSpeed + 2,
+                color: particleColor
+            });
+        }
       }
       for (let i = smokeParticles.length - 1; i >= 0; i--) {
         const p = smokeParticles[i];
         p.y += p.speedY;
         p.alpha -= 0.03;
         ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = "rgba(240, 240, 240, 1)";
+        ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
         ctx.fill();
@@ -719,16 +760,19 @@
       }
       ctx.globalAlpha = 1;
 
-      // Draw player with opacity
+      // Update player rotation for tilting effect
+      const targetRotation = (player.x - (canvas.width / 2 - player.width / 2)) / (canvas.width / 2 - player.width / 2) * 0.2; // Max 0.2 radians tilt
+      player.rotation = lerp(player.rotation, targetRotation, 0.1);
+
+      // Draw player with opacity and rotation
       ctx.save();
       ctx.globalAlpha = player.opacity;
-      ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
-      drawCar(-player.width / 2, -player.height / 2, playerCarDesign);
+      drawCar(player.x, player.y, playerCarDesign, player.rotation);
       
       // Draw shield effect around player if active
       if (shieldActive) {
           ctx.beginPath();
-          ctx.arc(0, 0, player.width / 2 + 5, 0, 2 * Math.PI);
+          ctx.arc(player.x + player.width / 2, player.y + player.height / 2, player.width / 2 + 5, 0, 2 * Math.PI);
           ctx.strokeStyle = `rgba(0, 170, 255, ${shieldDuration / SHIELD_DURATION_FRAMES})`;
           ctx.lineWidth = 3;
           ctx.stroke();
@@ -753,18 +797,21 @@
       // Nitro Countdown
       if (nitroActive) {
         gameSpeed = baseGameSpeed * NITRO_SPEED_MULTIPLIER;
+        backgroundSpeed = baseGameSpeed * NITRO_SPEED_MULTIPLIER;
         gameContainer.classList.add('nitro-active');
         nitroDuration--;
         if (nitroDuration <= 0) {
           nitroActive = false;
           nitroCooldown = NITRO_COOLDOWN_FRAMES;
           gameSpeed = baseGameSpeed;
+          backgroundSpeed = baseGameSpeed;
           gameContainer.classList.remove('nitro-active');
         }
       } else {
         if (nitroCooldown > 0) {
           nitroCooldown--;
           gameSpeed = baseGameSpeed;
+          backgroundSpeed = baseGameSpeed;
         }
       }
       updateNitroButton();
