@@ -19,21 +19,40 @@
             position: relative;
         }
         
-        /* Game Container Styling (Increased Size) */
+        /* Game Container Styling */
         .game-container {
             position: relative;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             overflow: hidden;
             background-color: #111; 
+            border: 3px solid transparent;
+            transition: border-color 0.3s;
         }
 
-        /* Canvas (Road) Styling (Increased Size) */
+        .game-container.nitro-active {
+            border-color: #ffd700;
+        }
+
+        .game-container.shield-active {
+            border-color: #00bfff;
+        }
+
+        .game-container.disaster-active {
+            animation: fire-border 0.5s infinite alternate;
+        }
+
+        @keyframes fire-border {
+            from { border-color: #ff4500; }
+            to { border-color: #ffa500; }
+        }
+
+        /* Canvas (Road) Styling */
         #racing-canvas {
             display: block;
             background: #666; /* Road color */
-            width: 350px; /* Increased */
-            height: 700px; /* Increased */
+            width: 320px; /* Decreased */
+            height: 600px; /* Decreased */
         }
 
         /* Overlays and Text */
@@ -98,11 +117,10 @@
             right: 10px;
         }
         
-        /* Nitro Button Styling */
-        #nitroBtn {
+        /* Nitro and Shield Button Styling */
+        .booster-btn {
             position: absolute;
             bottom: 20px;
-            right: 20px;
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -115,34 +133,35 @@
             cursor: default;
             z-index: 20;
         }
+        
+        #nitroBtn { right: 20px; }
 
-        #nitroFill {
+        .fill-bar {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #00ff55;
             transition: height 0.1s linear;
         }
+        
+        #nitroFill { background-color: #00ff55; }
 
-        #nitroBtn.ready {
+        .booster-btn.ready {
             cursor: pointer;
             box-shadow: 0 0 15px #00ff55;
         }
 
-        #nitroBtn.ready #nitroFill {
-            background-color: #00ff55;
-        }
+        .booster-btn.ready #nitroFill { background-color: #00ff55; }
 
-        #nitroBtn.using {
+        .booster-btn.using {
             box-shadow: 0 0 20px yellow;
         }
 
-        #nitroBtn span {
+        .booster-btn span {
             position: relative;
             z-index: 2;
         }
-
+        
         /* Nitro Active Effects */
         .color-cycle-animation {
             animation: colorShift 0.5s infinite alternate;
@@ -153,13 +172,11 @@
             to { background-color: #220022; }
         }
 
-        /* NEW: Music Toggle Button CSS */
+        /* Music Toggle Button CSS */
         .music-btn {
-            /* Positioning */
             position: absolute;
             bottom: 20px;
             left: 20px;
-            /* Styling */
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -178,33 +195,66 @@
             align-items: center;
         }
 
-        /* Visual cue for when the music is OFF */
         .music-btn.off {
             color: #FF4500;
             border-color: #FF4500;
+        }
+
+        /* Shield Display */
+        #shieldDisplay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 80px;
+            height: 60px;
+            background-color: rgba(0, 170, 255, 0.2);
+            border: 2px solid #00aaff;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: 0 0 5px #000;
+            z-index: 20;
+            pointer-events: none; /* Make it non-clickable */
+            box-shadow: 0 0 15px #00aaff;
+            opacity: 1;
+        }
+        #shieldDisplay.hide {
+          opacity: 0;
+          transition: opacity 0.5s ease-out;
         }
     </style>
 </head>
 <body>
     <audio id="bg-music" src="cargamebg.mp3" autoplay loop muted></audio>
     
-    <button id="musicToggle" class="control-btn music-btn off">🔇</button>
-    
     <div id="high-score" class="score-display">High Score: 0</div>
     <div id="score" class="score-display">Score: 0</div>
     
     <div class="game-container" id="gameContainer">
-        <canvas id="racing-canvas" width="350" height="700"></canvas> <div id="introOverlay" class="overlay">
+        <canvas id="racing-canvas" width="320" height="600"></canvas>
+        <div id="introOverlay" class="overlay">
             <h1>Pixel Racer</h1>
             <p>Use your mouse or touch to steer!</p>
             <button id="playButton" class="control-btn fade-in" style="opacity: 1;">Start Game</button>
         </div>
         
-        <button id="nitroBtn" disabled>
-            <div id="nitroFill"></div>
+        <button id="musicToggle" class="control-btn music-btn off">🔇</button>
+        <button id="nitroBtn" class="booster-btn" disabled>
+            <div id="nitroFill" class="fill-bar"></div>
             <span>NITRO</span>
         </button>
+
+        <div id="shieldDisplay" style="display: none;">
+            <span>🛡️</span>
+            <span id="shieldTime"></span>
+        </div>
     </div>
+
 <script>
     const gameContainer = document.getElementById("gameContainer");
     const introOverlay = document.getElementById("introOverlay");
@@ -215,15 +265,13 @@
     const highScoreDisplay = document.getElementById("high-score");
     const nitroBtn = document.getElementById("nitroBtn");
     const nitroFill = document.getElementById("nitroFill");
-    const bgMusic = document.getElementById("bg-music"); // HTML Audio Element
-    const musicToggle = document.getElementById("musicToggle"); // Music Toggle Button
+    const shieldDisplay = document.getElementById("shieldDisplay");
+    const shieldTimeDisplay = document.getElementById("shieldTime");
+    const bgMusic = document.getElementById("bg-music");
+    const musicToggle = document.getElementById("musicToggle");
 
     // Tone.js sound effects
-    const overtakeSynth = new Tone.PluckSynth({
-      dampening: 2000,
-      resonance: 0.9,
-      volume: -5 
-    }).toDestination();
+    const overtakeSynth = new Tone.PluckSynth({ dampening: 2000, resonance: 0.9, volume: -5 }).toDestination();
     const nitroSynth = new Tone.NoiseSynth({
         "volume": -10,
         "envelope": { "attack": 0.001, "decay": 0.2, "sustain": 0.05, "release": 0.2 },
@@ -231,15 +279,42 @@
     }).toDestination();
     const gameOverSynth = new Tone.MembraneSynth().toDestination();
 
+    // New, calmer shield sound effect
+    const shieldCollectSynth = new Tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 },
+        volume: -10
+    }).toDestination();
+
+    const shieldActiveSynth = new Tone.Synth({
+        "oscillator": { "type": "triangle" },
+        "envelope": { "attack": 0.01, "decay": 0.1, "sustain": 0.01, "release": 0.1 },
+        "volume": -15
+    }).toDestination();
+    
+    // Devastating meteoroid sound
+    const meteoroidSynth = new Tone.MetalSynth({
+        "frequency": 200,
+        "envelope": { "attack": 0.001, "decay": 0.1, "sustain": 0.05, "release": 0.2 },
+        "harmonicity": 5.1,
+        "modulationIndex": 32,
+        "resonance": 4000,
+        "octaves": 1.5,
+        "volume": -5
+    }).toDestination();
+    const blastSynth = new Tone.NoiseSynth({
+        "volume": -5,
+        "envelope": { "attack": 0.001, "decay": 0.5, "sustain": 0, "release": 0.2 }
+    }).toDestination();
+
     // Music State Initialization
     let musicEnabled = localStorage.getItem('musicEnabled') === 'true';
 
     function initializeMusic() {
         if (bgMusic) {
-            bgMusic.volume = 0.4; // UPDATED: Set base volume to 40%
-            bgMusic.muted = !musicEnabled; // Mute if musicEnabled is false
+            bgMusic.volume = 0.25;
+            bgMusic.muted = !musicEnabled;
 
-            // Update the button icon and class based on the stored state
             if (musicEnabled) {
                 musicToggle.textContent = '🔊';
                 musicToggle.classList.remove('off');
@@ -249,23 +324,31 @@
             }
         }
     }
-
-    // Call once on script load
     initializeMusic();
 
-
     // Game variables
-    let player, obstacles, score, highScore, gameOver;
+    let player, obstacles, shields, disasters, score, highScore, gameOver;
     let baseGameSpeed = 3;
+    let originalGameSpeed = baseGameSpeed;
     let gameSpeed = baseGameSpeed;
     let nitroActive = false, nitroDuration = 0, nitroCooldown = 0;
+    let shieldActive = false, shieldDuration = 0;
+    let disasterActive = false, disasterDuration = 0;
+    let meteors = [];
     let roadLines = [];
     let smokeParticles = [];
+    let explosionParticles = [];
     let isDragging = false;
     let endGameEffect = false;
-
-    const NITRO_DURATION_FRAMES = 300;
-    const NITRO_COOLDOWN_FRAMES = 900;
+    
+    // Game Constants
+    const NITRO_SPEED_MULTIPLIER = 3.2;
+    const NITRO_DURATION_FRAMES = 480;
+    const NITRO_COOLDOWN_FRAMES = 720;
+    const SHIELD_DURATION_FRAMES = 600;
+    const SHIELD_SPAWN_RATE = 0.0005;
+    const BASE_DISASTER_SPAWN_RATE = 0.00005 * 1.07;
+    const DISASTER_DURATION_FRAMES = 120; // 2 seconds at 60fps
     const ROAD_LINE_COUNT = 3;
     const ROAD_LINE_WIDTH = 5;
     const ROAD_LINE_LENGTH = 50;
@@ -290,7 +373,7 @@
       'T': '#00000000', 'D': '#444444', 'L': '#CCCCCC', 'G': '#00FF00',
       'R': '#FF0000', 'O': '#FFAA00', 'B': '#0000FF'
     };
-
+    
     function drawCar(x, y, design, scale = 6) {
       for (let row = 0; row < design.length; row++) {
         for (let col = 0; col < design[row].length; col++) {
@@ -322,11 +405,12 @@
     }
 
     function startGame() {
+      Tone.start(); 
       introOverlay.style.display = 'none';
       playButton.style.display = 'none';
       playButton.classList.remove('fade-in'); 
+      musicToggle.style.display = 'none';
 
-      // Only unmute if user has music enabled
       if (bgMusic && musicEnabled) {
           bgMusic.muted = false;
       }
@@ -341,8 +425,12 @@
       };
 
       obstacles = [];
+      shields = [];
+      disasters = [];
+      meteors = [];
       roadLines = [];
       smokeParticles = [];
+      explosionParticles = [];
       for (let i = 0; i < canvas.height / ROAD_LINE_SPACING; i++) {
         roadLines.push({ y: i * ROAD_LINE_SPACING });
       }
@@ -352,7 +440,15 @@
       gameOver = false;
       endGameEffect = false;
       baseGameSpeed = 3; 
+      originalGameSpeed = baseGameSpeed;
       gameSpeed = baseGameSpeed;
+      shieldActive = false;
+      shieldDuration = 0;
+      disasterActive = false;
+      disasterDuration = 0;
+      shieldDisplay.style.display = 'none';
+      
+      gameContainer.className = 'game-container';
 
       scoreDisplay.innerText = `Score: ${score}`;
       highScoreDisplay.innerText = `High Score: ${highScore}`;
@@ -368,7 +464,50 @@
       const x = Math.random() * (canvas.width - width - 10) + 5;
       obstacles.push({ x, y: -height, width, height, passed: false });
     }
+    
+    function spawnShield() {
+      const size = 30;
+      const x = Math.random() * (canvas.width - size - 10) + 5;
+      shields.push({ x, y: -size, width: size, height: size });
+    }
 
+    function spawnDisaster() {
+      const size = 40;
+      const x = Math.random() * (canvas.width - size - 10) + 5;
+      disasters.push({ x, y: -size, width: size, height: size });
+    }
+
+    function drawExplosion(x, y) {
+        for (let i = 0; i < 30; i++) {
+            explosionParticles.push({
+                x: x,
+                y: y,
+                size: Math.random() * 5 + 2,
+                speedX: Math.random() * 6 - 3,
+                speedY: Math.random() * 6 - 3,
+                alpha: 1,
+                color: Math.random() > 0.5 ? '#FF4500' : '#FFA500'
+            });
+        }
+    }
+
+    function drawMeteor(meteor) {
+        // Draw the main meteor body
+        ctx.fillStyle = '#ff6600';
+        ctx.beginPath();
+        ctx.arc(meteor.x, meteor.y, meteor.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw the tail
+        ctx.fillStyle = `rgba(255, 100, 0, ${meteor.alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(meteor.x, meteor.y);
+        ctx.lineTo(meteor.x - meteor.speedX * 10, meteor.y - meteor.speedY * 10);
+        ctx.lineTo(meteor.x + meteor.speedX * 10, meteor.y - meteor.speedY * 10);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
     function updateGame() {
       if (gameOver) {
         if (!endGameEffect) {
@@ -387,6 +526,39 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawRoadLines();
 
+      // Handle devastating meteoroid animation and effect
+      if (disasterActive) {
+          disasterDuration--;
+
+          if (disasterDuration > 0) {
+              // Move meteors towards their targets
+              for (let i = meteors.length - 1; i >= 0; i--) {
+                  const m = meteors[i];
+                  const dx = m.targetX - m.x;
+                  const dy = m.targetY - m.y;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+
+                  if (dist > 1) {
+                      m.x += dx / 20;
+                      m.y += dy / 20;
+                  } else {
+                      // Meteor hit its target
+                      blastSynth.triggerAttackRelease("4n");
+                      drawExplosion(m.targetX, m.targetY);
+                      meteors.splice(i, 1);
+                  }
+                  drawMeteor(m);
+              }
+          }
+
+          if (disasterDuration <= 0) {
+              disasterActive = false;
+              gameSpeed = originalGameSpeed;
+              meteors = [];
+              gameContainer.classList.remove('disaster-active');
+          }
+      }
+
       // Obstacles
       for (let obs of obstacles) {
         obs.y += gameSpeed;
@@ -397,24 +569,118 @@
           obs.passed = true;
           scoreDisplay.innerText = `Score: ${score}`;
           overtakeSynth.triggerAttackRelease("C5", "8n");
-
-          if (score >= 30 && (score - 30) % 5 === 0) {
-            baseGameSpeed += 0.5;
-          }
         }
       }
       obstacles = obstacles.filter(o => o.y < canvas.height + 20);
 
-      // Spawn logic
-      let minOpponents, maxOpponents;
-      if (score === 0) { minOpponents = 1; maxOpponents = 1; }
-      else if (score <= 15) { minOpponents = 0; maxOpponents = 3; }
-      else if (score <= 30) { minOpponents = 1; maxOpponents = 6; }
-      else if (score <= 80) { minOpponents = 3; maxOpponents = 6; }
-      else { minOpponents = 3; maxOpponents = 7; }
-      if (obstacles.length < minOpponents) spawnObstacle();
-      else if (obstacles.length < maxOpponents && Math.random() < 0.015) spawnObstacle();
+      // Shields
+      for (let i = shields.length - 1; i >= 0; i--) {
+        const shield = shields[i];
+        shield.y += gameSpeed;
+        
+        // Draw shield
+        ctx.fillStyle = '#00aaff';
+        ctx.beginPath();
+        ctx.arc(shield.x + shield.width / 2, shield.y + shield.height / 2, shield.width / 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.font = `${shield.width - 5}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🛡️', shield.x + shield.width / 2, shield.y + shield.height / 2);
 
+        // Check for collision with player
+        if (player.x < shield.x + shield.width &&
+            player.x + player.width > shield.x &&
+            player.y < shield.y + shield.height &&
+            player.y + player.height > shield.y) {
+            
+            shieldCollectSynth.triggerAttackRelease("C5", "8n");
+            
+            if (!shieldActive) {
+                shieldActive = true;
+                shieldDuration = SHIELD_DURATION_FRAMES;
+                shieldDisplay.style.display = 'flex';
+                gameContainer.classList.add('shield-active');
+            }
+            shields.splice(i, 1);
+        }
+      }
+      shields = shields.filter(s => s.y < canvas.height + 20);
+
+      // Disasters
+      for (let i = disasters.length - 1; i >= 0; i--) {
+        const disaster = disasters[i];
+        disaster.y += gameSpeed;
+        
+        // Draw disaster
+        ctx.fillStyle = '#ff6600';
+        ctx.beginPath();
+        ctx.arc(disaster.x + disaster.width / 2, disaster.y + disaster.height / 2, disaster.width / 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.font = `${disaster.width - 10}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('☄️', disaster.x + disaster.width / 2, disaster.y + disaster.height / 2);
+
+           // Check for collision with player
+        if (player.x < disaster.x + disaster.width &&
+            player.x + player.width > disaster.x &&
+            player.y < disaster.y + disaster.height &&
+            player.y + player.height > disaster.y) {
+            
+            disasterActive = true;
+            disasterDuration = DISASTER_DURATION_FRAMES;
+            gameSpeed = originalGameSpeed * 0.25;
+            gameContainer.classList.add('disaster-active');
+            
+            // Spawn meteors to hit all current cars
+            for(let obs of obstacles) {
+                meteors.push({
+                    x: Math.random() * canvas.width,
+                    y: -50,
+                    size: Math.random() * 8 + 15,
+                    targetX: obs.x + obs.width / 2,
+                    targetY: obs.y + obs.height / 2,
+                    speedX: 0,
+                    speedY: 0,
+                    alpha: 1
+                });
+                meteoroidSynth.triggerAttackRelease("C2", "8n");
+            }
+            obstacles = []; // Clear cars immediately
+
+            disasters.splice(i, 1);
+        }
+      }
+      disasters = disasters.filter(d => d.y < canvas.height + 20);
+
+      // Spawning Logic based on score
+      let minOpponents, maxOpponents;
+      let currentDisasterSpawnRate = BASE_DISASTER_SPAWN_RATE;
+
+      if (score >= 50) {
+        currentDisasterSpawnRate = BASE_DISASTER_SPAWN_RATE * 1.10;
+      }
+
+      if (score === 0) { minOpponents = 1; maxOpponents = 1; }
+      else if (score >= 1 && score < 20) { minOpponents = 1; maxOpponents = 3; }
+      else if (score >= 20 && score < 40) { minOpponents = 1; maxOpponents = 4; }
+      else if (score >= 40 && score < 70) { minOpponents = 2; maxOpponents = 4; }
+      else if (score >= 70) { minOpponents = 2; maxOpponents = 5; }
+      
+      if (!disasterActive) {
+          if (obstacles.length < minOpponents) spawnObstacle();
+          else if (obstacles.length < maxOpponents && Math.random() < 0.015) spawnObstacle();
+      }
+      if (Math.random() < SHIELD_SPAWN_RATE && shields.length === 0 && disasters.length === 0 && !shieldActive && !disasterActive) {
+          spawnShield();
+      }
+      if (Math.random() < currentDisasterSpawnRate && disasters.length === 0 && shields.length === 0 && !shieldActive && !disasterActive) {
+          spawnDisaster();
+      }
+      
       // Smoke particles
       if (isDragging) {
         smokeParticles.push({
@@ -437,17 +703,42 @@
         if (p.alpha <= 0) smokeParticles.splice(i, 1);
       }
       ctx.globalAlpha = 1;
+      
+      // Explosion particles
+      for (let i = explosionParticles.length - 1; i >= 0; i--) {
+          const p = explosionParticles[i];
+          p.x += p.speedX;
+          p.y += p.speedY;
+          p.alpha -= 0.05;
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+          ctx.fill();
+          if (p.alpha <= 0) explosionParticles.splice(i, 1);
+      }
+      ctx.globalAlpha = 1;
 
       // Draw player with opacity
       ctx.save();
       ctx.globalAlpha = player.opacity;
       ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
       drawCar(-player.width / 2, -player.height / 2, playerCarDesign);
+      
+      // Draw shield effect around player if active
+      if (shieldActive) {
+          ctx.beginPath();
+          ctx.arc(0, 0, player.width / 2 + 5, 0, 2 * Math.PI);
+          ctx.strokeStyle = `rgba(0, 170, 255, ${shieldDuration / SHIELD_DURATION_FRAMES})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+      }
+
       ctx.restore();
       ctx.globalAlpha = 1;
 
       // Collision
-      if (!gameOver) {
+      if (!gameOver && !shieldActive) {
         for (let obs of obstacles) {
           if (player.x < obs.x + obs.width &&
             player.x + player.width > obs.x &&
@@ -459,16 +750,16 @@
         }
       }
 
-      // Nitro
+      // Nitro Countdown
       if (nitroActive) {
-        gameSpeed = baseGameSpeed * 1.8;
-        gameContainer.classList.add('color-cycle-animation');
+        gameSpeed = baseGameSpeed * NITRO_SPEED_MULTIPLIER;
+        gameContainer.classList.add('nitro-active');
         nitroDuration--;
         if (nitroDuration <= 0) {
           nitroActive = false;
           nitroCooldown = NITRO_COOLDOWN_FRAMES;
           gameSpeed = baseGameSpeed;
-          gameContainer.classList.remove('color-cycle-animation');
+          gameContainer.classList.remove('nitro-active');
         }
       } else {
         if (nitroCooldown > 0) {
@@ -477,7 +768,20 @@
         }
       }
       updateNitroButton();
-
+      
+      // Shield Countdown
+      if (shieldActive) {
+          shieldDuration--;
+          shieldActiveSynth.triggerAttackRelease("C6", "16n");
+          shieldTimeDisplay.textContent = Math.ceil(shieldDuration / 60) + 's';
+          gameContainer.classList.add('shield-active');
+          if (shieldDuration <= 0) {
+              shieldActive = false;
+              shieldDisplay.style.display = 'none';
+              gameContainer.classList.remove('shield-active');
+          }
+      }
+      
       requestAnimationFrame(updateGame);
     }
 
@@ -489,7 +793,6 @@
       }
       highScoreDisplay.innerText = `High Score: ${highScore}`;
       
-      // Wait for 0.5 seconds before showing the retry button
       setTimeout(() => {
         introOverlay.style.display = 'flex';
         playButton.innerText = "Retry";
@@ -500,44 +803,34 @@
             playButton.style.opacity = '1';
         });
         
-        // Mute music when game is over
         if (bgMusic) {
             bgMusic.muted = true;
         }
-
+        musicToggle.style.display = 'flex';
       }, 500);
     }
 
     // Button Events
     playButton.addEventListener("click", () => {
-        // Tone.start() is still needed for sound effects
         Tone.start(); 
         startGame();
     });
 
-    // Music Toggle Button Listener
     musicToggle.addEventListener("click", () => {
-        musicEnabled = !musicEnabled; // Toggle the state
-
+        musicEnabled = !musicEnabled;
         if (bgMusic) {
-            bgMusic.muted = !musicEnabled; // Apply the new state to the audio element
-
-            // Update button visual and text
+            bgMusic.muted = !musicEnabled;
             if (musicEnabled) {
                 musicToggle.textContent = '🔊';
                 musicToggle.classList.remove('off');
-                // Try to play immediately if the user enables it
                 bgMusic.play().catch(e => console.log('Autoplay blocked, unmuted only.'));
             } else {
                 musicToggle.textContent = '🔇';
                 musicToggle.classList.add('off');
             }
         }
-        
-        // Save the preference to local storage
         localStorage.setItem('musicEnabled', musicEnabled);
     });
-
 
     nitroBtn.addEventListener("click", () => {
       if (!gameOver && !nitroActive && nitroCooldown === 0) {
@@ -556,20 +849,14 @@
         nitroClassList.add('using');
         nitroFill.style.height = `${(nitroDuration / NITRO_DURATION_FRAMES) * 100}%`;
         nitroBtn.disabled = true;
-        nitroBtn.style.backgroundColor = 'gray';
-        nitroBtn.style.color = 'white';
       } else if (nitroCooldown > 0) {
         nitroClassList.add('charging');
         nitroFill.style.height = `${(1 - nitroCooldown / NITRO_COOLDOWN_FRAMES) * 100}%`;
         nitroBtn.disabled = true;
-        nitroBtn.style.backgroundColor = 'gray';
-        nitroBtn.style.color = 'white';
       } else {
         nitroClassList.add('ready');
         nitroFill.style.height = '100%';
         nitroBtn.disabled = false;
-        nitroBtn.style.backgroundColor = '#00ff55';
-        nitroBtn.style.color = '#111';
       }
     }
 
@@ -616,5 +903,5 @@
     });
 </script>
 
-    </body>
+</body>
 </html>
