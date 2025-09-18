@@ -281,12 +281,6 @@
 
     const shieldSound = new Tone.Player("shieldcargame.mp3").toDestination();
 
-    const shieldActiveSynth = new Tone.Synth({
-        "oscillator": { "type": "triangle" },
-        "envelope": { "attack": 0.01, "decay": 0.1, "sustain": 0.01, "release": 0.1 },
-        "volume": -15
-    }).toDestination();
-    
     // Devastating meteoroid sound
     const meteoroidSynth = new Tone.MetalSynth({
         "frequency": 200,
@@ -323,8 +317,8 @@
 
     // Game variables
     let player, obstacles, shields, disasters, score, highScore, gameOver;
-    let baseGameSpeed = 3;
-    let powerUpSpeed = 3; // New variable for consistent power-up speed
+    const baseGameSpeed = 3; // Fixed game speed
+    const powerUpSpeed = 2; // Fixed power-up speed
     let originalGameSpeed = baseGameSpeed;
     let backgroundSpeed = baseGameSpeed;
     let gameSpeed = baseGameSpeed;
@@ -448,10 +442,8 @@
       highScore = localStorage.getItem("highScore") || 0;
       gameOver = false;
       endGameEffect = false;
-      baseGameSpeed = 3; 
-      originalGameSpeed = baseGameSpeed;
-      backgroundSpeed = baseGameSpeed;
       gameSpeed = baseGameSpeed;
+      backgroundSpeed = baseGameSpeed;
       nitroActive = false;
       nitroDuration = 0;
       nitroCooldown = 0;
@@ -549,12 +541,12 @@
           shakeFrames--;
       }
 
-      // Increase game speed based on score
-      gameSpeed = baseGameSpeed + Math.floor(score / 10) * 0.5;
+      // Set game speed
+      gameSpeed = nitroActive ? baseGameSpeed * NITRO_SPEED_MULTIPLIER : baseGameSpeed;
       backgroundSpeed = gameSpeed;
-      if (nitroActive) {
-          gameSpeed = gameSpeed * NITRO_SPEED_MULTIPLIER;
-          backgroundSpeed = gameSpeed;
+      if (disasterActive) {
+          gameSpeed = originalGameSpeed * 0.25;
+          backgroundSpeed = originalGameSpeed * 0.25;
       }
 
       drawRoadLines();
@@ -586,8 +578,8 @@
 
           if (disasterDuration <= 0) {
               disasterActive = false;
-              gameSpeed = originalGameSpeed;
-              backgroundSpeed = originalGameSpeed;
+              gameSpeed = baseGameSpeed;
+              backgroundSpeed = baseGameSpeed;
               meteors = [];
               gameContainer.classList.remove('disaster-active');
           }
@@ -610,9 +602,9 @@
       // Shields
       for (let i = shields.length - 1; i >= 0; i--) {
         const shield = shields[i];
-        shield.y += powerUpSpeed; // Use powerUpSpeed
+        shield.y += powerUpSpeed;
         
-        // Draw shield
+               // Draw shield
         ctx.fillStyle = '#00aaff';
         ctx.beginPath();
         ctx.arc(shield.x + shield.width / 2, shield.y + shield.height / 2, shield.width / 2, 0, 2 * Math.PI);
@@ -631,7 +623,7 @@
             
             shieldSound.start();
             
-                        if (!shieldActive) {
+            if (!shieldActive) {
                 shieldActive = true;
                 shieldDuration = SHIELD_DURATION_FRAMES;
                 shieldDisplay.style.display = 'flex';
@@ -645,7 +637,7 @@
       // Disasters
       for (let i = disasters.length - 1; i >= 0; i--) {
         const disaster = disasters[i];
-        disaster.y += powerUpSpeed; // Use powerUpSpeed
+        disaster.y += powerUpSpeed;
         
         // Draw disaster
         ctx.fillStyle = '#ff6600';
@@ -796,22 +788,16 @@
 
       // Nitro Countdown
       if (nitroActive) {
-        gameSpeed = baseGameSpeed * NITRO_SPEED_MULTIPLIER;
-        backgroundSpeed = baseGameSpeed * NITRO_SPEED_MULTIPLIER;
         gameContainer.classList.add('nitro-active');
         nitroDuration--;
         if (nitroDuration <= 0) {
           nitroActive = false;
           nitroCooldown = NITRO_COOLDOWN_FRAMES;
-          gameSpeed = baseGameSpeed;
-          backgroundSpeed = baseGameSpeed;
           gameContainer.classList.remove('nitro-active');
         }
       } else {
         if (nitroCooldown > 0) {
           nitroCooldown--;
-          gameSpeed = baseGameSpeed;
-          backgroundSpeed = baseGameSpeed;
         }
       }
       updateNitroButton();
@@ -819,7 +805,6 @@
       // Shield Countdown
       if (shieldActive) {
           shieldDuration--;
-          shieldActiveSynth.triggerAttackRelease("C6", "16n");
           shieldTimeDisplay.textContent = Math.ceil(shieldDuration / 60) + 's';
           gameContainer.classList.add('shield-active');
           if (shieldDuration <= 0) {
