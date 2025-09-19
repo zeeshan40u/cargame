@@ -151,6 +151,19 @@ function drawRoadLines() {
   }
 }
 
+// Function to handle Fullscreen Request
+function requestFullScreen() {
+  const element = document.documentElement; // Targets the whole page (HTML element)
+  
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.webkitRequestFullscreen) { /* Safari */
+    element.webkitRequestFullscreen();
+  } else if (element.msRequestFullscreen) { /* IE11 */
+    element.msRequestFullscreen();
+  }
+}
+
 function startGame() {
   Tone.start();
   introOverlay.style.display = 'none';
@@ -330,7 +343,7 @@ function updateGame() {
   }
 
   // Obstacles
-  for (let obs of obstacles) {
+for (let obs of obstacles) {
     obs.y += gameSpeed;
     drawCar(obs.x, obs.y, opponentCarDesign);
 
@@ -595,6 +608,7 @@ playButton.addEventListener("click", function playHandler(e) {
   } else {
     Tone.start();
     startGame();
+    requestFullScreen(); // ADDED: Trigger fullscreen on play
   }
 });
 
@@ -614,6 +628,7 @@ modalYes.onclick = function() {
   localStorage.setItem('musicEnabled', true);
   Tone.start();
   startGame();
+  requestFullScreen(); // ADDED: Trigger fullscreen
 };
 
 // Modal Cancel button
@@ -623,6 +638,7 @@ modalCancel.onclick = function() {
   popupShown = true;
   Tone.start();
   startGame();
+  requestFullScreen(); // ADDED: Trigger fullscreen
 };
 
 // Optional: Hide modal if clicking outside
@@ -720,38 +736,3 @@ canvas.addEventListener('touchmove', (e) => {
     player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
   }
 });
-// Add this function to your script.js file
-function requestFullScreen() {
-  const element = document.documentElement; // Targets the whole page (HTML element)
-  
-  if (element.requestFullscreen) {
-    element.requestFullscreen();
-  } else if (element.webkitRequestFullscreen) { /* Safari */
-    element.webkitRequestFullscreen();
-  } else if (element.msRequestFullscreen) { /* IE11 */
-    element.msRequestFullscreen();
-  }
-}
-
-// Attach the function to an in-game click/touch event, for example, the canvas itself
-canvas.addEventListener('click', () => {
-  // Only try to enter fullscreen if the game is already running or the intro is gone
-  if (!gameOver) {
-    requestFullScreen();
-  }
-});
-
-// OR, you could put it on the playButton's existing handler:
-// playButton.addEventListener("click", function playHandler(e) {
-//   // ... existing code ...
-//   requestFullScreen(); // Add it here after Tone.start() and startGame()
-// });
-function exitFullScreen() {
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) { /* Safari */
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) { /* IE11 */
-    document.msExitFullscreen();
-  }
-}
