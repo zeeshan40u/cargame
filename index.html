@@ -607,11 +607,6 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Screen shake effect
-      if (shakeFrames > 0) {
-          const shakeX = (Math.random() - 0.5) * 10;
-          const shakeY = (Math.random() - 0.5) * 10;
-          ctx.translate(shakeX, shakeY);
-          shakeFrames--;
       }
       
       // Set game speed based on power-up state
