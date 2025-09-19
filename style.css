@@ -17,40 +17,14 @@ body {
   border-radius: 10px;
   overflow: hidden;
   background-color: #111;
-  border: 3px solid transparent;
-  transition: border-color 0.3s;
-}
-
-.game-container.nitro-active {
-  border-color: #ffd700;
-}
-
-.game-container.shield-active {
-  border-color: #00bfff;
-}
-
-.game-container.disaster-active {
-  animation: fire-border 00.5s infinite alternate;
-}
-
-@keyframes fire-border {
-  from {
-    border-color: #ff4500;
-  }
-  to {
-    border-color: #ffa500;
-  }
 }
 
 /* Canvas (Road) Styling */
 #racing-canvas {
   display: block;
-  background: #666;
-  /* Road color */
-  width: 320px;
-  /* Decreased */
-  height: 600px;
-  /* Decreased */
+  background: #666; /* Road color */
+  width: 320px;     /* Decreased */
+  height: 600px;    /* Decreased */
 }
 
 /* Overlays and Text */
@@ -115,7 +89,7 @@ body {
   right: 10px;
 }
 
-/* Nitro and Shield Button Styling */
+/* Nitro Button Styling */
 .booster-btn {
   position: absolute;
   bottom: 20px;
@@ -153,10 +127,6 @@ body {
   box-shadow: 0 0 15px #00ff55;
 }
 
-.booster-btn.ready #nitroFill {
-  background-color: #00ff55;
-}
-
 .booster-btn.using {
   box-shadow: 0 0 20px yellow;
 }
@@ -166,21 +136,7 @@ body {
   z-index: 2;
 }
 
-/* Nitro Active Effects */
-.color-cycle-animation {
-  animation: colorShift 0.5s infinite alternate;
-}
-
-@keyframes colorShift {
-  from {
-    background-color: #111;
-  }
-  to {
-    background-color: #220022;
-  }
-}
-
-/* Music Toggle Button CSS */
+/* 🎵 Music Toggle Button CSS (keep this new feature) */
 .music-btn {
   position: absolute;
   bottom: 20px;
@@ -195,4 +151,6 @@ body {
   line-height: 50px;
   padding: 0;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0,
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
