@@ -1041,16 +1041,6 @@ musicModal.addEventListener('click', function(e){
         player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
       }
     });
-// --- Music Modal Logic ---
-const musicModal = document.getElementById('musicModal');
-const modalYes = musicModal.querySelector('.yes');
-const modalCancel = musicModal.querySelector('.cancel');
-const playButton = document.getElementById("playButton");
-const bgMusic = document.getElementById("bg-music");
-const musicToggle = document.getElementById("musicToggle");
-
-let popupShown = sessionStorage.getItem('musicPopupShown') === 'true';
-
 // Override Play Button logic to show modal if not shown
 playButton.addEventListener("click", function playHandler(e) {
     if (!popupShown) {
