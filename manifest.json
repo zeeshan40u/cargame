@@ -3,7 +3,7 @@
   "short_name": "Racer",
   "description": "A fast-paced pixel art racing and dodging game.",
   "start_url": "/",
-  "display": "standalone",  // Changed for better compatibility
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#111111",
   "theme_color": "#00ff55",
