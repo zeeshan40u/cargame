@@ -2,16 +2,17 @@ const CACHE_NAME = 'pixel-racer-cache-v1';
 
 // List of all essential files and assets for your game
 const urlsToCache = [
-  '/',
+  '/', // This caches the root or entry point of your app
   '/index.html',
   '/style.css',
   '/script.js',
   '/manifest.json',
+  
+  // Custom Assets based on your list:
   '/cargame192.png',
   '/cargame512.png',
-  '/shieldcargame.mp3', 
-  // IMPORTANT: Replace this with your actual background music file name
-  '/bg-music.mp3' 
+  '/cargamebg.mp3',      // Your background music
+  '/shieldcargame.mp3'   // Your shield sound effect
 ];
 
 // --- INSTALLATION: Pre-caching Assets ---
@@ -26,7 +27,6 @@ self.addEventListener('install', (event) => {
         console.error('[Service Worker] Failed to cache:', err);
       })
   );
-  // Forces the new service worker to activate immediately
   self.skipWaiting();
 });
 
@@ -52,11 +52,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached response if found
         if (response) {
           return response;
         }
-        // Otherwise, fetch from the network
         return fetch(event.request);
       })
   );
