@@ -320,8 +320,8 @@
     
     // Core game speed constants
     const BASE_GAME_SPEED = 3;
-    let gameSpeed = 0; 
-    let backgroundSpeed = 0;
+    let gameSpeed = BASE_GAME_SPEED;
+    let backgroundSpeed = BASE_GAME_SPEED;
 
     // Power-up state variables
     let nitroActive = false, nitroDuration = 0, nitroCooldown = 0;
@@ -341,7 +341,7 @@
     const NITRO_COOLDOWN_FRAMES = 720;
     const SHIELD_DURATION_FRAMES = 600;
     const SHIELD_SPAWN_RATE = 0.0005;
-    const BASE_DISASTER_SPAWN_RATE = 0.00005 * 1.07;
+    const DISASTER_SPAWN_RATE = 0.0005;
     const DISASTER_DURATION_FRAMES = 120; // 2 seconds at 60fps
     const ROAD_LINE_COUNT = 3;
     const ROAD_LINE_WIDTH = 5;
@@ -684,13 +684,12 @@
 
       // Spawning Logic
       let minOpponents, maxOpponents;
-      let currentDisasterSpawnRate = BASE_DISASTER_SPAWN_RATE;
 
       if (score === 0) { minOpponents = 1; maxOpponents = 1; }
-      else if (score >= 1 && score < 20) { minOpponents = 1; maxOpponents = 3; }
-      else if (score >= 20 && score < 40) { minOpponents = 1; maxOpponents = 4; }
-      else if (score >= 40 && score < 70) { minOpponents = 2; maxOpponents = 4; }
-      else if (score >= 70) { minOpponents = 2; maxOpponents = 5; }
+      else if (score >= 1 && score < 20) { minOpponents = 1; maxOpponents = 4; }
+      else if (score >= 20 && score < 40) { minOpponents = 1; maxOpponents = 5; }
+      else if (score >= 40 && score < 70) { minOpponents = 4; maxOpponents = 5; }
+      else if (score >= 70) { minOpponents = 5; maxOpponents = 5; }
       
       if (!disasterActive) {
           if (obstacles.length < minOpponents) spawnObstacle();
@@ -699,7 +698,7 @@
       if (Math.random() < SHIELD_SPAWN_RATE && shields.length === 0 && disasters.length === 0 && !shieldActive && !disasterActive) {
           spawnShield();
       }
-      if (Math.random() < currentDisasterSpawnRate && disasters.length === 0 && shields.length === 0 && !shieldActive && !disasterActive) {
+      if (Math.random() < DISASTER_SPAWN_RATE && disasters.length === 0 && shields.length === 0 && !shieldActive && !disasterActive) {
           spawnDisaster();
       }
       
