@@ -1,390 +1,282 @@
-/* --- General Reset --- */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* --- Modal Styles --- */
+#musicModal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
 }
-
-body, html {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #111;
+#musicModal .modal-content {
+    background: #232946;
     color: #fff;
-    user-select: none;
+    padding: 32px 24px;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    text-align: center;
+    min-width: 320px;
+    max-width: 80vw;
+    margin: auto;
+    position: relative;
+}
+#musicModal .modal-content p {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+#musicModal .modal-btns {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+}
+.modal-btn {
+    flex: 1 1 0;
+    padding: 12px 0;
+    border-radius: 12px;
+    border: none;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.modal-btn.yes {
+    background: linear-gradient(90deg, #4f8cff 0%, #1ec1a6 100%);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(79,140,255,0.15);
+}
+.modal-btn.yes:hover {
+    background: linear-gradient(90deg, #1ec1a6 0%, #4f8cff 100%);
+}
+.modal-btn.cancel {
+    background: #fff;
+    color: #232946;
+    border: 2px solid #4f8cff;
+}
+.modal-btn.cancel:hover {
+    background: #f5f7fa;
+    color: #1ec1a6;
+    border-color: #1ec1a6;
+}
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #222;
+    font-family: sans-serif;
+    overflow: hidden;
+    position: relative;
 }
 
-/* --- Game Container --- */
+/* Game Container Styling */
 .game-container {
     position: relative;
-    width: 100%;
-    height: 100%;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
     overflow: hidden;
-    background: #222 url('road-bg.png') repeat-y center top;
-    background-size: cover;
+    background-color: #111;
+    border: 3px solid transparent;
+    transition: border-color 0.3s;
 }
 
-/* --- Canvas --- */
+.game-container.nitro-active {
+    border-color: #ffd700;
+}
+
+.game-container.shield-active {
+    border-color: #00bfff;
+}
+
+.game-container.disaster-active {
+    animation: fire-border 0.5s infinite alternate;
+}
+
+@keyframes fire-border {
+    from { border-color: #ff4500; }
+    to { border-color: #ffa500; }
+}
+
+/* Canvas (Road) Styling */
 #racing-canvas {
     display: block;
-    width: 100%;
-    height: 100%;
-    background: #222;
-    cursor: grab;
+    background: #666; /* Road color */
+    width: 320px; /* Decreased */
+    height: 600px; /* Decreased */
 }
 
-/* --- Intro Overlay --- */
-#introOverlay {
+/* Overlays and Text */
+.overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(17, 17, 17, 0.95);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
+    text-align: center;
     z-index: 10;
 }
 
-#introOverlay h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+.overlay h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+/* Button Styling */
+.control-btn {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #00ff55;
+    color: #111;
+    transition: background-color 0.3s, opacity 0.5s;
+}
+
+.retry-btn {
+    opacity: 0;
 }
 
 .fade-in {
-    animation: fadeIn 0.5s ease forwards;
+    transition: opacity 0.5s ease-in;
+    opacity: 1;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* --- Play Button --- */
-#playButton {
-    padding: 1rem 2rem;
-    font-size: 1.5rem;
-    border: none;
-    border-radius: 12px;
-    background-color: #00ff00;
-    color: #111;
-    cursor: pointer;
-    transition: 0.3s all;
-}
-
-#playButton:hover {
-    background-color: #00cc00;
-}
-
-/* --- Music Toggle --- */
-#musicToggle {
+/* Score Display */
+.score-display {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    font-size: 1.5rem;
-    cursor: pointer;
-    user-select: none;
+    top: 10px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 5px black;
+    z-index: 20;
 }
 
-#musicToggle.off {
-    opacity: 0.5;
+#score {
+    left: 10px;
 }
 
-/* --- Score & High Score --- */
-#score, #high-score {
+#high-score {
+    right: 10px;
+}
+
+/* Nitro and Shield Button Styling */
+.booster-btn {
     position: absolute;
-    top: 15px;
-    font-size: 1.2rem;
-    padding: 0.5rem 1rem;
-    background: rgba(0,0,0,0.5);
-    border-radius: 8px;
-    z-index: 5;
-}
-
-#score { left: 15px; }
-#high-score { right: 15px; }
-
-/* --- Nitro Button --- */
-#nitroBtn {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 20px;
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    border: none;
-    background-color: #ffcc00;
-    cursor: pointer;
+    background-color: gray;
+    color: white;
+    font-size: 0.8em;
+    padding: 0;
     overflow: hidden;
+    border: none;
+    cursor: default;
+    z-index: 20;
 }
 
-#nitroBtn.ready { background-color: #ffcc00; }
-#nitroBtn.charging { background-color: #aaa; }
-#nitroBtn.using { background-color: #ff0; }
+#nitroBtn { right: 20px; }
 
-#nitroFill {
+.fill-bar {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background-color: #00f;
     transition: height 0.1s linear;
-    z-index: -1;
 }
 
-/* --- Shield Display --- */
-#shieldDisplay {
-    position: absolute;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    z-index: 5;
-}
+#nitroFill { background-color: #00ff55; }
 
-#shieldDisplay span {
-    margin-top: 5px;
-    font-size: 1rem;
-}
-
-/* --- Disaster effect --- */
-.game-container.disaster-active {
-    animation: disasterFlash 0.2s infinite alternate;
-}
-
-@keyframes disasterFlash {
-    from { background-color: #222; }
-    to { background-color: #330000; }
-}
-
-/* --- Road lines --- */
-.road-line {
-    position: absolute;
-    width: 5px;
-    height: 50px;
-    background: #fff;
-    top: 0;
-}
-
-/* --- Player/Enemy Cars ---
-    The cars are drawn on canvas, so CSS handles only potential shadows or glow effects.
-*/
-/* --- Smoke Particles --- */
-.smoke-particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-/* --- Explosion Particles --- */
-.explosion-particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-/* --- Shield Glow on Player --- */
-.shield-glow {
-    box-shadow: 0 0 15px 5px rgba(0, 170, 255, 0.7);
-    border-radius: 50%;
-}
-
-/* --- Canvas Effects for Neon Glow --- */
-canvas {
-    image-rendering: pixelated;
-}
-
-/* --- Nitro Glow Animation --- */
-#nitroBtn.using::before {
-    content: '';
-    position: absolute;
-    width: 120%;
-    height: 120%;
-    top: -10%;
-    left: -10%;
-    border-radius: 50%;
-    background: rgba(255, 215, 0, 0.5);
-    animation: nitroPulse 0.5s infinite alternate;
-    z-index: -1;
-}
-
-@keyframes nitroPulse {
-    from { transform: scale(1); opacity: 0.7; }
-    to { transform: scale(1.2); opacity: 0.3; }
-}
-
-/* --- Button Hover Effects --- */
-#playButton:hover, #nitroBtn:hover {
-    transform: scale(1.05);
-}
-
-/* --- Shield Time Text --- */
-#shieldTime {
-    color: #00aaff;
-    font-weight: bold;
-}
-
-/* --- High Score/Score Glow --- */
-#score, #high-score {
-    text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
-}
-
-/* --- Road Lines Glow --- */
-.road-line {
-    box-shadow: 0 0 5px #fff;
-}
-
-/* --- Optional Neon Flicker --- */
-@keyframes neonFlicker {
-    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
-    20%, 22%, 24%, 55% { opacity: 0.4; }
-}
-
-/* --- Apply Neon Flicker to Score --- */
-#score, #high-score {
-    animation: neonFlicker 1.5s infinite;
-}
-
-/* --- Misc --- */
-#introOverlay button {
+.booster-btn.ready {
     cursor: pointer;
+    box-shadow: 0 0 15px #00ff55;
 }
-/* --- Game Over Overlay --- */
-#gameOverOverlay {
+
+.booster-btn.ready #nitroFill { background-color: #00ff55; }
+
+.booster-btn.using {
+    box-shadow: 0 0 20px yellow;
+}
+
+.booster-btn span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Nitro Active Effects */
+.color-cycle-animation {
+    animation: colorShift 0.5s infinite alternate;
+}
+
+@keyframes colorShift {
+    from { background-color: #111; }
+    to { background-color: #220022; }
+}
+
+/* Music Toggle Button CSS */
+.music-btn {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(17, 17, 17, 0.9);
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #ccc;
+    background-color: #333;
+    color: white;
+    font-size: 24px;
+    line-height: 50px;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, color 0.2s;
+    z-index: 20;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
-    z-index: 15;
-    color: #ff4444;
-    font-size: 2rem;
-    text-align: center;
+}
+
+.music-btn.off {
+    color: #FF4500;
+    border-color: #FF4500;
+}
+
+/* Shield Display */
+#shieldDisplay {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 80px;
+    height: 60px;
+    background-color: rgba(0, 170, 255, 0.2);
+    border: 2px solid #00aaff;
+    border-radius: 10px;
     display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    text-shadow: 0 0 5px #000;
+    z-index: 20;
+    pointer-events: none; /* Make it non-clickable */
+    box-shadow: 0 0 15px #00aaff;
+    opacity: 1;
 }
-
-/* --- Explosion Particles Glow --- */
-.explosion-particle {
-    box-shadow: 0 0 10px #ff6600, 0 0 20px #ff3300;
-}
-
-/* --- Smoke Particles Fade --- */
-.smoke-particle {
-    filter: blur(2px);
-    opacity: 0.8;
-}
-
-/* --- Player Car Glow on Nitro --- */
-.nitro-glow {
-    box-shadow: 0 0 20px 5px #ffd700;
-}
-
-/* --- Meteor Effects --- */
-.meteor {
-    box-shadow: 0 0 10px 2px #ff6600;
-}
-
-/* --- Shield Icon on Canvas --- */
-.shield-icon {
-    font-size: 1.2rem;
-    pointer-events: none;
-}
-
-/* --- Smooth Transitions --- */
-#nitroBtn, #playButton, #musicToggle, #shieldDisplay {
-    transition: all 0.2s ease;
-}
-
-/* --- Optional Retro Pixel Look --- */
-body, canvas {
-    image-rendering: pixelated;
-}
-
-/* --- Debug Grid (optional) --- */
-.debug-grid {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
-    z-index: 100;
-}
-/* --- HUD Glow Effects --- */
-#score, #high-score {
-    text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00;
-}
-
-/* --- Road Lines Glow --- */
-.road-line {
-    box-shadow: 0 0 5px #fff;
-}
-
-/* --- Shield Display Text --- */
-#shieldDisplay span {
-    text-shadow: 0 0 5px #00aaff;
-}
-
-/* --- Intro Overlay Button Hover --- */
-#introOverlay button {
-    transform: scale(1);
-    transition: transform 0.2s ease;
-}
-#introOverlay button:hover {
-    transform: scale(1.05);
-}
-
-/* --- Canvas Neon Flicker Effects --- */
-@keyframes neonFlicker {
-    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
-    20%, 22%, 24%, 55% { opacity: 0.4; }
-}
-#score, #high-score {
-    animation: neonFlicker 1.5s infinite;
-}
-
-/* --- Optional Overlay Flash for Disaster --- */
-.game-container.disaster-active {
-    animation: disasterFlash 0.2s infinite alternate;
-}
-@keyframes disasterFlash {
-    from { background-color: #222; }
-    to { background-color: #330000; }
-}
-
-/* --- Nitros and Explosions on Canvas --- */
-.nitro-particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    box-shadow: 0 0 10px 2px #ffd700;
-}
-.explosion-glow {
-    box-shadow: 0 0 15px 5px #ff6600, 0 0 25px 10px #ff3300;
-}
-
-/* --- Ensure overlay text is readable --- */
-#gameOverOverlay h2, #gameOverOverlay p {
-    margin: 0.5rem 0;
-}
-
-/* --- Optional Flicker for Neon UI --- */
-.neon-ui {
-    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
-    animation: neonFlicker 1.5s infinite;
+#shieldDisplay.hide {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
 }
