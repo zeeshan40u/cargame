@@ -736,3 +736,15 @@ canvas.addEventListener('touchmove', (e) => {
     player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
   }
 });
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((reg) => {
+        console.log('Service Worker registered! Scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.error('Service Worker registration failed:', err);
+      });
+  });
+}
