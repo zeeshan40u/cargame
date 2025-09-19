@@ -1,3 +1,14 @@
+/* --- Global Reset & Non-Standard UX Fixes --- */
+* {
+  /* Removes the blue/gray highlight on mobile devices when tapping */
+  -webkit-tap-highlight-color: transparent;
+  /* Prevents all text on the page from being selectable */
+  user-select: none;          /* Standard property */
+  -webkit-user-select: none;  /* Safari/Chrome/iOS */
+  -moz-user-select: none;     /* Firefox */
+  -ms-user-select: none;      /* IE/Edge */
+}
+
 /* --- Modal Styles --- */
 #musicModal {
     display: none;
