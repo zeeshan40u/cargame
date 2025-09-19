@@ -1,0 +1,198 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #222;
+  font-family: sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Game Container Styling */
+.game-container {
+  position: relative;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #111;
+  border: 3px solid transparent;
+  transition: border-color 0.3s;
+}
+
+.game-container.nitro-active {
+  border-color: #ffd700;
+}
+
+.game-container.shield-active {
+  border-color: #00bfff;
+}
+
+.game-container.disaster-active {
+  animation: fire-border 00.5s infinite alternate;
+}
+
+@keyframes fire-border {
+  from {
+    border-color: #ff4500;
+  }
+  to {
+    border-color: #ffa500;
+  }
+}
+
+/* Canvas (Road) Styling */
+#racing-canvas {
+  display: block;
+  background: #666;
+  /* Road color */
+  width: 320px;
+  /* Decreased */
+  height: 600px;
+  /* Decreased */
+}
+
+/* Overlays and Text */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  z-index: 10;
+}
+
+.overlay h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+}
+
+/* Button Styling */
+.control-btn {
+  padding: 10px 20px;
+  font-size: 1.2em;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #00ff55;
+  color: #111;
+  transition: background-color 0.3s, opacity 0.5s;
+}
+
+.retry-btn {
+  opacity: 0;
+}
+
+.fade-in {
+  transition: opacity 0.5s ease-in;
+  opacity: 1;
+}
+
+/* Score Display */
+.score-display {
+  position: absolute;
+  top: 10px;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 5px black;
+  z-index: 20;
+}
+
+#score {
+  left: 10px;
+}
+
+#high-score {
+  right: 10px;
+}
+
+/* Nitro and Shield Button Styling */
+.booster-btn {
+  position: absolute;
+  bottom: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: gray;
+  color: white;
+  font-size: 0.8em;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  cursor: default;
+  z-index: 20;
+}
+
+#nitroBtn {
+  right: 20px;
+}
+
+.fill-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  transition: height 0.1s linear;
+}
+
+#nitroFill {
+  background-color: #00ff55;
+}
+
+.booster-btn.ready {
+  cursor: pointer;
+  box-shadow: 0 0 15px #00ff55;
+}
+
+.booster-btn.ready #nitroFill {
+  background-color: #00ff55;
+}
+
+.booster-btn.using {
+  box-shadow: 0 0 20px yellow;
+}
+
+.booster-btn span {
+  position: relative;
+  z-index: 2;
+}
+
+/* Nitro Active Effects */
+.color-cycle-animation {
+  animation: colorShift 0.5s infinite alternate;
+}
+
+@keyframes colorShift {
+  from {
+    background-color: #111;
+  }
+  to {
+    background-color: #220022;
+  }
+}
+
+/* Music Toggle Button CSS */
+.music-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid #ccc;
+  background-color: #333;
+  color: white;
+  font-size: 24px;
+  line-height: 50px;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0,
