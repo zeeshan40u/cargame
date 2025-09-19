@@ -998,6 +998,61 @@
         player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
       }
     });
+// --- Music Modal Logic ---
+const musicModal = document.getElementById('musicModal');
+const modalYes = musicModal.querySelector('.yes');
+const modalCancel = musicModal.querySelector('.cancel');
+const playButton = document.getElementById("playButton");
+const bgMusic = document.getElementById("bg-music");
+const musicToggle = document.getElementById("musicToggle");
+
+let popupShown = sessionStorage.getItem('musicPopupShown') === 'true';
+
+// Override Play Button logic to show modal if not shown
+playButton.addEventListener("click", function playHandler(e) {
+    if (!popupShown) {
+        e.preventDefault();
+        musicModal.style.display = 'flex';
+    } else {
+        Tone.start();
+        startGame();
+    }
+});
+
+// Modal Yes button
+modalYes.onclick = function() {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+    // Enable music
+    if (bgMusic) {
+        bgMusic.muted = false;
+        bgMusic.play();
+        musicToggle.textContent = '🔊';
+        musicToggle.classList.remove('off');
+    }
+    localStorage.setItem('musicEnabled', true);
+    Tone.start();
+    startGame();
+};
+
+// Modal Cancel button
+modalCancel.onclick = function() {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+    Tone.start();
+    startGame();
+};
+
+// Optional: Hide modal if clicking outside
+musicModal.addEventListener('click', function(e){
+  if (e.target === musicModal) {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+  }
+});
 </script>
 
 </body>
