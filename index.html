@@ -3,57 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Racing Game</title>
-    <!-- Link to CSS -->
+    <title>PixelPoint</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
 </head>
 <body>
+    <audio id="bg-music" src="cargamebg.mp3" autoplay loop muted></audio>
+    <div id="high-score" class="score-display">High Score: 0</div>
+    <div id="score" class="score-display">Score: 0</div>
 
-    <!-- Game Container -->
-    <div id="gameContainer" class="game-container">
-
-        <!-- Intro Overlay -->
-        <div id="introOverlay">
-            <h1>Pixel Racing</h1>
-            <button id="playButton">Play</button>
+    <div class="game-container" id="gameContainer">
+        <canvas id="racing-canvas" width="320" height="600"></canvas>
+        <div id="introOverlay" class="overlay">
+            <h1>PixelPoint</h1>
+            <p>Use your mouse or touch to steer!</p>
+            <button id="playButton" class="control-btn fade-in" style="opacity: 1;">Start Game</button>
         </div>
 
-        <!-- Game Over Overlay -->
-        <div id="gameOverOverlay">Game Over<br>Press Play to Retry</div>
-
-        <!-- Score Displays -->
-        <div id="score">Score: 0</div>
-        <div id="high-score">High Score: 0</div>
-
-        <!-- Nitro Button -->
-        <button id="nitroBtn">
-            <div id="nitroFill"></div>
+        <button id="musicToggle" class="control-btn music-btn off">🔇</button>
+        <button id="nitroBtn" class="booster-btn" disabled>
+            <div id="nitroFill" class="fill-bar"></div>
+            <span>NITRO</span>
         </button>
 
-        <!-- Shield Display -->
-        <div id="shieldDisplay">
-            <span id="shieldTime">Shield: 0s</span>
+        <div id="shieldDisplay" style="display: none;">
+            <span>🛡️</span>
+            <span id="shieldTime"></span>
         </div>
-
-        <!-- Music Toggle -->
-        <div id="musicToggle">🔊</div>
-
-        <!-- Canvas -->
-        <canvas id="racing-canvas"></canvas>
-
-        <!-- Debug Grid (optional) -->
-        <!-- <div class="debug-grid"></div> -->
-
     </div>
 
-    <!-- Background Music -->
-    <audio id="bg-music" loop src="bg-music.mp3"></audio>
+    <div id="musicModal">
+      <div class="modal-content">
+        <p>For more enjoyment, please turn on the bg music button.</p>
+        <div class="modal-btns">
+          <button class="modal-btn yes">Yes</button>
+          <button class="modal-btn cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Tone.js library -->
-    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
-
-    <!-- Link to JS -->
     <script src="script.js"></script>
-
 </body>
 </html>
