@@ -908,11 +908,54 @@
     }
 
     // Button Events
-    playButton.addEventListener("click", () => {
-        Tone.start(); 
-        startGame();
-    });
+    // --- Music Modal Logic ---
+const musicModal = document.getElementById('musicModal');
+const modalYes = musicModal.querySelector('.yes');
+const modalCancel = musicModal.querySelector('.cancel');
 
+let popupShown = sessionStorage.getItem('musicPopupShown') === 'true';
+
+playButton.addEventListener("click", function(e) {
+    if (!popupShown) {
+        e.preventDefault();
+        musicModal.style.display = 'flex';
+    } else {
+        Tone.start();
+        startGame();
+    }
+});
+
+modalYes.onclick = function() {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+    // Enable music
+    if (bgMusic) {
+        bgMusic.muted = false;
+        bgMusic.play();
+        musicToggle.textContent = '🔊';
+        musicToggle.classList.remove('off');
+    }
+    localStorage.setItem('musicEnabled', true);
+    Tone.start();
+    startGame();
+};
+
+modalCancel.onclick = function() {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+    Tone.start();
+    startGame();
+};
+
+musicModal.addEventListener('click', function(e){
+  if (e.target === musicModal) {
+    musicModal.style.display = 'none';
+    sessionStorage.setItem('musicPopupShown', 'true');
+    popupShown = true;
+  }
+});
     musicToggle.addEventListener("click", () => {
         musicEnabled = !musicEnabled;
         if (bgMusic) {
