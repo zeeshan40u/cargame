@@ -2,8 +2,8 @@
   "name": "Pixel Racer",
   "short_name": "Racer",
   "description": "A fast-paced pixel art racing and dodging game.",
-  "start_url": "/index.html",
-  "display": "fullscreen",
+  "start_url": "/",
+  "display": "standalone",  // Changed for better compatibility
   "orientation": "portrait",
   "background_color": "#111111",
   "theme_color": "#00ff55",
